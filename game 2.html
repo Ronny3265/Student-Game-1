@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<title></title>
+	<meta name="generator" content="LibreOffice 25.2.3.2 (Linux)"/>
+	<meta name="created" content="00:00:00"/>
+	<meta name="changed" content="00:00:00"/>
+	<style type="text/css">
+		@page { size: 8.27in 11.69in; margin: 0.79in }
+		p { margin-bottom: 0.1in; line-height: 115%; background: transparent }
+		pre { font-size: 10pt; font-family: "Liberation Mono", monospace; background: transparent }
+	</style>
+</head>
+<body lang="en-US" link="#000080" vlink="#800000" dir="ltr"><pre>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+  &lt;meta charset=&quot;UTF-8&quot; /&gt;
+  &lt;title&gt;Student Support Scenario Game&lt;/title&gt;
+  &lt;style&gt;
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      padding: 20px;
+      text-align: center;
+    }
+    h2 {
+      color: #333;
+    }
+    .student-container {
+      display: flex;
+      justify-content: space-around;
+      margin: 30px 0;
+    }
+    .student-card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      width: 28%;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .response-options {
+      margin-top: 20px;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #feedback {
+      margin-top: 20px;
+      font-size: 18px;
+    }
+    #winScreen {
+      display: none;
+      font-size: 24px;
+      font-weight: bold;
+      color: #4CAF50;
+      margin-top: 30px;
+    }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+&lt;h2&gt;Student Support Scenario Game&lt;/h2&gt;
+&lt;p&gt;Observe the students and choose who may be showing signs of depression. Then select the best response.&lt;/p&gt;
+
+&lt;div class=&quot;student-container&quot; id=&quot;studentContainer&quot;&gt;&lt;/div&gt;
+&lt;div class=&quot;response-options&quot; id=&quot;responseOptions&quot;&gt;&lt;/div&gt;
+&lt;div id=&quot;feedback&quot;&gt;&lt;/div&gt;
+&lt;div id=&quot;winScreen&quot;&gt;🎉 Congratulations! You correctly supported 3 students. Game Over.&lt;/div&gt;
+
+&lt;script&gt;
+const categories = [&quot;Social behaviour&quot;, &quot;Communication&quot;, &quot;Sensory&quot;, &quot;Physical&quot;, &quot;Cognitive&quot;, &quot;Academic performance&quot;];
+const traitExamples = {
+  &quot;Social behaviour&quot;: [&quot;withdrawn from group activities&quot;, &quot;chatting often with peers&quot;, &quot;engaging but only with one close friend&quot;],
+  &quot;Communication&quot;: [&quot;responds quietly and rarely initiates conversation&quot;, &quot;talks openly and confidently&quot;, &quot;uses humour frequently&quot;],
+  &quot;Sensory&quot;: [&quot;overreacts to noise or touch&quot;, &quot;calm in noisy environments&quot;, &quot;fidgets with items constantly&quot;],
+  &quot;Physical&quot;: [&quot;appears tired or low energy&quot;, &quot;energetic and active&quot;, &quot;frequently complains of headaches&quot;],
+  &quot;Cognitive&quot;: [&quot;has difficulty concentrating&quot;, &quot;shows strong problem-solving skills&quot;, &quot;often forgets instructions&quot;],
+  &quot;Academic performance&quot;: [&quot;grades have recently dropped&quot;, &quot;produces consistent high-quality work&quot;, &quot;rarely submits homework on time&quot;]
+};
+
+// Detailed correct responses
+const correctResponses = [
+  &quot;I’ve noticed you’ve been a bit quiet lately. I’m here if you want to talk.&quot;,
+  &quot;You’re not alone in this. There’s support available, and I can help you find it.&quot;,
+  &quot;Would you like a break or to speak to someone from wellbeing support?&quot;,
+  &quot;Your feelings are valid. It’s okay to not feel okay.&quot;,
+  &quot;You’re doing your best, and I’m proud of the effort you’re making.&quot;,
+  &quot;Let’s figure out how we can make things feel more manageable.&quot;,
+  &quot;Would it help if I checked in with you at the start or end of class?&quot;,
+  &quot;I can help you connect with the school counsellor or wellbeing team if you want.&quot;
+];
+
+// Close (not entirely correct) responses - supportive but incomplete or less direct
+const closeResponses = [
+  &quot;Use active listening, like saying 'I hear you' or 'That sounds really hard.'&quot;,
+  &quot;Check in regularly without pressure, e.g. 'Hey, just wanted to see how you're doing.'&quot;,
+  &quot;Gently recommend professional support like a school counsellor or psychologist.&quot;,
+  &quot;Allow flexible deadlines or reduced workload when needed.&quot;,
+  &quot;Integrate mental health awareness into class discussions.&quot;,
+  &quot;If you notice self-harm or suicidal thoughts, report immediately to wellbeing staff.&quot;,
+  &quot;Offer quiet spaces or breaks when needed to support focus.&quot;,
+  &quot;Foster a safe, predictable classroom environment.&quot;
+];
+
+// Incorrect responses - harmful or dismissive
+const incorrectResponses = [
+  &quot;You’re just being lazy.&quot;,
+  &quot;Snap out of it. Just get over it.&quot;,
+  &quot;You have nothing to be depressed about.&quot;,
+  &quot;Stop being so dramatic.&quot;,
+  &quot;If you don't cheer up, there will be consequences.&quot;,
+  &quot;Ignoring or laughing off their behaviour.&quot;,
+  &quot;Gossiping about their concerns with others.&quot;,
+  &quot;You’re just doing this for attention.&quot;,
+  &quot;Forcing them to talk in front of others.&quot;,
+  &quot;Ignoring serious signs like self-harm or suicidal thoughts.&quot;
+];
+
+let students, studentWithDepression;
+let correctStreak = 0;
+let selectedCategories = [];
+
+function getRandomTraits() {
+  const shuffled = categories.sort(() =&gt; 0.5 - Math.random());
+  return shuffled.slice(0, 3);
+}
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i &gt; 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function generateStudent(name, isDepressed, categoriesForRound) {
+  const traits = categoriesForRound.map(cat =&gt; {
+    const options = traitExamples[cat];
+    let description;
+    if (isDepressed &amp;&amp; Math.random() &lt; 0.7) {
+      description = options[0];
+    } else {
+      description = options[Math.floor(Math.random() * options.length)];
+    }
+    return `&lt;strong&gt;${cat}:&lt;/strong&gt; ${description}`;
+  });
+  return { name, traits, isDepressed };
+}
+
+function startRound() {
+  if (correctStreak &gt;= 3) {
+    document.getElementById(&quot;studentContainer&quot;).innerHTML = &quot;&quot;;
+    document.getElementById(&quot;responseOptions&quot;).innerHTML = &quot;&quot;;
+    document.getElementById(&quot;feedback&quot;).innerHTML = &quot;&quot;;
+    document.getElementById(&quot;winScreen&quot;).style.display = &quot;block&quot;;
+    return;
+  }
+
+  document.getElementById(&quot;feedback&quot;).innerHTML = &quot;&quot;;
+  document.getElementById(&quot;winScreen&quot;).style.display = &quot;none&quot;;
+  selectedCategories = getRandomTraits();
+
+  const names = [&quot;Liam&quot;, &quot;Aisha&quot;, &quot;Noah&quot;];
+  const depressedIndex = Math.floor(Math.random() * 3);
+  students = names.map((name, idx) =&gt; generateStudent(name, idx === depressedIndex, selectedCategories));
+  studentWithDepression = depressedIndex;
+
+  displayStudents();
+}
+
+function displayStudents() {
+  const container = document.getElementById(&quot;studentContainer&quot;);
+  container.innerHTML = &quot;&quot;;
+  students.forEach((student, index) =&gt; {
+    const div = document.createElement(&quot;div&quot;);
+    div.className = &quot;student-card&quot;;
+    div.innerHTML = `&lt;h3&gt;${student.name}&lt;/h3&gt;&lt;p&gt;${student.traits.join(&quot;&lt;br&gt;&quot;)}&lt;/p&gt;&lt;button onclick=&quot;selectStudent(${index})&quot;&gt;Select&lt;/button&gt;`;
+    container.appendChild(div);
+  });
+}
+
+function selectStudent(index) {
+  const responseDiv = document.getElementById(&quot;responseOptions&quot;);
+
+  if (index !== studentWithDepression) {
+    document.getElementById(&quot;feedback&quot;).innerHTML = 
+      &quot;That student may need support, but they are not showing the key signs this round.&lt;br&gt;&lt;br&gt;&quot; + 
+      `&lt;button onclick=&quot;startRound()&quot;&gt;Try Again&lt;/button&gt;`;
+    responseDiv.innerHTML = &quot;&quot;;
+    return;
+  }
+
+  document.getElementById(&quot;feedback&quot;).innerHTML = 
+    &quot;✅ Good job identifying the characteristics. Now how should you respond?&quot;;
+
+  // Pick one response from each category randomly
+  const chosenCorrect = correctResponses[Math.floor(Math.random() * correctResponses.length)];
+  const chosenClose = closeResponses[Math.floor(Math.random() * closeResponses.length)];
+  const chosenIncorrect = incorrectResponses[Math.floor(Math.random() * incorrectResponses.length)];
+
+  // Create array and shuffle for button order
+  const responseOptions = shuffleArray([
+    { type: 'correct', text: chosenCorrect },
+    { type: 'close', text: chosenClose },
+    { type: 'incorrect', text: chosenIncorrect }
+  ]);
+
+  responseDiv.innerHTML = `&lt;h3&gt;What would you say to ${students[index].name}?&lt;/h3&gt;` +
+    responseOptions.map(r =&gt; 
+      `&lt;button onclick=&quot;submitResponse('${r.type}')&quot;&gt;${r.text}&lt;/button&gt;`
+    ).join(&quot;&lt;br&gt;&quot;);
+}
+
+function submitResponse(type) {
+  const feedbackEl = document.getElementById(&quot;feedback&quot;);
+  let message = &quot;&quot;;
+
+  if (type === &quot;correct&quot;) {
+    correctStreak++;
+    message = &quot;&lt;strong&gt;✅ Correct:&lt;/strong&gt; You've approached this thoughtfully and compassionately.&quot;;
+  } else if (type === &quot;close&quot;) {
+    message = &quot;&lt;strong&gt;🔶 Close:&lt;/strong&gt; You're showing awareness, but consider being more open and supportive.&quot;;
+  } else {
+    message = &quot;&lt;strong&gt;❌ Not quite:&lt;/strong&gt; Try to avoid dismissive language. A gentle check-in works better.&quot;;
+  }
+
+  feedbackEl.innerHTML += `&lt;br&gt;&lt;br&gt;${message}&lt;br&gt;&lt;br&gt;&lt;button onclick=&quot;startRound()&quot;&gt;Start Next Round&lt;/button&gt;`;
+  document.getElementById(&quot;responseOptions&quot;).innerHTML = &quot;&quot;;
+}
+
+startRound();
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</body>
+</html>
